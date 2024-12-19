@@ -3,11 +3,12 @@ import 'dart:math';
 
 import 'package:collection/collection.dart' show IterableExtension;
 import 'package:flutter/material.dart';
-
-import '../controller/story_controller.dart';
-import '../utils.dart';
-import 'story_image.dart';
-import 'story_video.dart';
+import 'package:story_view/controller/story_controller.dart';
+import 'package:story_view/controller/story_reaction_controller.dart';
+import 'package:story_view/utils.dart';
+import 'package:story_view/widgets/reactions_widget.dart';
+import 'package:story_view/widgets/story_image.dart';
+import 'package:story_view/widgets/story_video.dart';
 
 /// Indicates where the progress indicators should be placed.
 enum ProgressPosition { top, bottom, none }
@@ -18,6 +19,13 @@ enum IndicatorHeight { small, medium, large }
 
 /// This is a representation of a story item (or page).
 class StoryItem {
+  StoryItem(
+    this.view, {
+    required this.duration,
+    required this.id,
+    this.shown = false,
+  });
+
   /// Specifies how long the page should be displayed. It should be a reasonable
   /// amount of time greater than 0 milliseconds.
   final Duration duration;
@@ -37,12 +45,21 @@ class StoryItem {
 
   /// The page content
   final Widget view;
-  StoryItem(
-    this.view, {
-    required this.duration,
-    required this.id,
-    this.shown = false,
-  });
+
+  StoryItem copyWith({
+    Duration? duration,
+    String? id,
+    bool? shown,
+    Widget? view,
+    StoryReactionController? reactionController,
+  }) {
+    return StoryItem(
+      view ?? this.view,
+      duration: duration ?? this.duration,
+      id: id ?? this.id,
+      shown: shown ?? this.shown,
+    );
+  }
 
   /// Short hand to create text-only page.
   ///
@@ -55,6 +72,7 @@ class StoryItem {
   static StoryItem text({
     required String title,
     required Color backgroundColor,
+    required StoryReactionController reactionController,
     Key? key,
     TextStyle? textStyle,
     bool shown = false,
@@ -85,7 +103,7 @@ class StoryItem {
           ),
         ),
         padding: textOuterPadding ??
-            EdgeInsets.symmetric(
+            const EdgeInsets.symmetric(
               horizontal: 24,
               vertical: 16,
             ),
@@ -105,7 +123,7 @@ class StoryItem {
         //color: backgroundColor,
       ),
       shown: shown,
-      duration: duration ?? Duration(seconds: 3),
+      duration: duration ?? const Duration(seconds: 3),
       id: id ?? '',
     );
   }
@@ -115,9 +133,11 @@ class StoryItem {
   factory StoryItem.pageImage({
     required String url,
     required StoryController controller,
+    required StoryReactionController reactionController,
     Key? key,
     BoxFit imageFit = BoxFit.fitWidth,
     Widget? caption,
+    Widget? header,
     bool shown = false,
     Map<String, dynamic>? requestHeaders,
     Widget? loadingWidget,
@@ -140,23 +160,30 @@ class StoryItem {
               loadingWidget: loadingWidget,
               errorWidget: errorWidget,
             ),
-            SafeArea(
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: Container(
-                  width: double.infinity,
-                  margin: EdgeInsets.only(bottom: 24),
-                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                  color: caption != null ? Colors.black54 : Colors.transparent,
-                  child: caption ?? const SizedBox.shrink(),
+            if (header != null)
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 18),
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 24),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 8,
+                      ),
+                      color: Colors.black54,
+                      child: header,
+                    ),
+                  ),
                 ),
-              ),
-            )
+              )
           ],
         ),
       ),
       shown: shown,
-      duration: duration ?? Duration(seconds: 3),
+      duration: duration ?? const Duration(seconds: 3),
       id: id ?? '',
     );
   }
@@ -167,6 +194,7 @@ class StoryItem {
     required String url,
     Text? caption,
     required StoryController controller,
+    required StoryReactionController reactionController,
     Key? key,
     BoxFit imageFit = BoxFit.cover,
     Map<String, dynamic>? requestHeaders,
@@ -197,9 +225,9 @@ class StoryItem {
                   errorWidget: errorWidget,
                 ),
                 Container(
-                  margin: EdgeInsets.only(bottom: 16),
+                  margin: const EdgeInsets.only(bottom: 16),
                   padding: captionOuterPadding ??
-                      EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                   child: Align(
                     alignment: Alignment.bottomLeft,
                     child: Container(
@@ -218,7 +246,7 @@ class StoryItem {
         ),
       ),
       shown: shown,
-      duration: duration ?? Duration(seconds: 3),
+      duration: duration ?? const Duration(seconds: 3),
       id: id ?? '',
     );
   }
@@ -228,10 +256,12 @@ class StoryItem {
   factory StoryItem.pageVideo(
     String url, {
     required StoryController controller,
+    required StoryReactionController reactionController,
     Key? key,
     Duration? duration,
     BoxFit imageFit = BoxFit.fitWidth,
     Widget? caption,
+    Widget? header,
     bool shown = false,
     Map<String, dynamic>? requestHeaders,
     Widget? loadingWidget,
@@ -256,18 +286,33 @@ class StoryItem {
                 alignment: Alignment.bottomCenter,
                 child: Container(
                   width: double.infinity,
-                  margin: EdgeInsets.only(bottom: 24),
-                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  margin: const EdgeInsets.only(bottom: 24),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                   color: caption != null ? Colors.black54 : Colors.transparent,
                   child: caption ?? const SizedBox.shrink(),
                 ),
               ),
-            )
+            ),
+            if (header != null)
+              SafeArea(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 24),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    color: Colors.black54,
+                    child: header,
+                  ),
+                ),
+              )
           ],
         ),
       ),
       shown: shown,
-      duration: duration ?? Duration(seconds: 10),
+      duration: duration ?? const Duration(seconds: 10),
       id: id ?? '',
     );
   }
@@ -277,6 +322,7 @@ class StoryItem {
   /// up.
   factory StoryItem.pageProviderImage(
     ImageProvider image, {
+    required StoryReactionController reactionController,
     Key? key,
     BoxFit imageFit = BoxFit.fitWidth,
     Widget? caption,
@@ -303,8 +349,9 @@ class StoryItem {
                 alignment: Alignment.bottomCenter,
                 child: Container(
                   width: double.infinity,
-                  margin: EdgeInsets.only(bottom: 24),
-                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  margin: const EdgeInsets.only(bottom: 24),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                   color: caption != null ? Colors.black54 : Colors.transparent,
                   child: caption ?? const SizedBox.shrink(),
                 ),
@@ -314,7 +361,7 @@ class StoryItem {
         ),
       ),
       shown: shown,
-      duration: duration ?? Duration(seconds: 3),
+      duration: duration ?? const Duration(seconds: 3),
       id: id ?? '',
     );
   }
@@ -324,6 +371,7 @@ class StoryItem {
   /// up.
   factory StoryItem.inlineProviderImage(
     ImageProvider image, {
+    required StoryReactionController reactionController,
     Key? key,
     Text? caption,
     bool shown = false,
@@ -346,24 +394,24 @@ class StoryItem {
               fit: BoxFit.cover,
             )),
         child: Container(
-          margin: EdgeInsets.only(
+          margin: const EdgeInsets.only(
             bottom: 16,
           ),
-          padding: EdgeInsets.symmetric(
+          padding: const EdgeInsets.symmetric(
             horizontal: 24,
             vertical: 8,
           ),
           child: Align(
             alignment: Alignment.bottomLeft,
             child: Container(
-              child: caption == null ? SizedBox() : caption,
+              child: caption == null ? const SizedBox() : caption,
               width: double.infinity,
             ),
           ),
         ),
       ),
       shown: shown,
-      duration: duration ?? Duration(seconds: 3),
+      duration: duration ?? const Duration(seconds: 3),
       id: id ?? '',
     );
   }
@@ -415,9 +463,13 @@ class StoryView extends StatefulWidget {
   /// Use this if you want to give outer padding to the indicator
   final EdgeInsetsGeometry indicatorOuterPadding;
 
+  /// Social reaction controller
+  final StoryReactionController reactionController;
+
   StoryView({
     required this.storyItems,
     required this.controller,
+    required this.reactionController,
     this.onComplete,
     this.onStoryShow,
     this.progressPosition = ProgressPosition.top,
@@ -611,7 +663,7 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
     } else {
       // this is the last page, progress animation should skip to end
       _animationController!
-          .animateTo(1.0, duration: Duration(milliseconds: 10));
+          .animateTo(1.0, duration: const Duration(milliseconds: 10));
     }
   }
 
@@ -627,7 +679,7 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
 
   void _holdNext() {
     _nextDebouncer?.cancel();
-    _nextDebouncer = Timer(Duration(milliseconds: 500), () {});
+    _nextDebouncer = Timer(const Duration(milliseconds: 500), () {});
   }
 
   @override
@@ -662,59 +714,62 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
               ),
             ),
           ),
-          Align(
-              alignment: Alignment.centerRight,
-              heightFactor: 1,
-              child: GestureDetector(
-                onTapDown: (details) {
-                  widget.controller.pause();
-                },
-                onTapCancel: () {
-                  widget.controller.play();
-                },
-                onTapUp: (details) {
-                  // if debounce timed out (not active) then continue anim
-                  if (_nextDebouncer?.isActive == false) {
+          Padding(
+            padding: const EdgeInsets.only(bottom: 200),
+            child: Align(
+                alignment: Alignment.centerRight,
+                heightFactor: 1,
+                child: GestureDetector(
+                  onTapDown: (details) {
+                    widget.controller.pause();
+                  },
+                  onTapCancel: () {
                     widget.controller.play();
-                  } else {
-                    widget.controller.next();
-                  }
-                },
-                onVerticalDragStart: widget.onVerticalSwipeComplete == null
-                    ? null
-                    : (details) {
-                        widget.controller.pause();
-                      },
-                onVerticalDragCancel: widget.onVerticalSwipeComplete == null
-                    ? null
-                    : () {
-                        widget.controller.play();
-                      },
-                onVerticalDragUpdate: widget.onVerticalSwipeComplete == null
-                    ? null
-                    : (details) {
-                        if (verticalDragInfo == null) {
-                          verticalDragInfo = VerticalDragInfo();
-                        }
+                  },
+                  onTapUp: (details) {
+                    // if debounce timed out (not active) then continue anim
+                    if (_nextDebouncer?.isActive == false) {
+                      widget.controller.play();
+                    } else {
+                      widget.controller.next();
+                    }
+                  },
+                  onVerticalDragStart: widget.onVerticalSwipeComplete == null
+                      ? null
+                      : (details) {
+                          widget.controller.pause();
+                        },
+                  onVerticalDragCancel: widget.onVerticalSwipeComplete == null
+                      ? null
+                      : () {
+                          widget.controller.play();
+                        },
+                  onVerticalDragUpdate: widget.onVerticalSwipeComplete == null
+                      ? null
+                      : (details) {
+                          if (verticalDragInfo == null) {
+                            verticalDragInfo = VerticalDragInfo();
+                          }
 
-                        verticalDragInfo!.update(details.primaryDelta!);
+                          verticalDragInfo!.update(details.primaryDelta!);
 
-                        // TODO: provide callback interface for animation purposes
-                      },
-                onVerticalDragEnd: widget.onVerticalSwipeComplete == null
-                    ? null
-                    : (details) {
-                        widget.controller.play();
-                        // finish up drag cycle
-                        if (!verticalDragInfo!.cancel &&
-                            widget.onVerticalSwipeComplete != null) {
-                          widget.onVerticalSwipeComplete!(
-                              verticalDragInfo!.direction);
-                        }
+                          // TODO: provide callback interface for animation purposes
+                        },
+                  onVerticalDragEnd: widget.onVerticalSwipeComplete == null
+                      ? null
+                      : (details) {
+                          widget.controller.play();
+                          // finish up drag cycle
+                          if (!verticalDragInfo!.cancel &&
+                              widget.onVerticalSwipeComplete != null) {
+                            widget.onVerticalSwipeComplete!(
+                                verticalDragInfo!.direction);
+                          }
 
-                        verticalDragInfo = null;
-                      },
-              )),
+                          verticalDragInfo = null;
+                        },
+                )),
+          ),
           Align(
             alignment: Alignment.centerLeft,
             heightFactor: 1,
@@ -723,6 +778,25 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
                   widget.controller.previous();
                 }),
                 width: 70),
+          ),
+          SafeArea(
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 24),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                color: Colors.black54,
+                child: ReactionsWidget(
+                  storyItemId: widget.storyItems
+                          .firstWhereOrNull((it) => !(it?.shown ?? true))
+                          ?.id ??
+                      '',
+                  reactionsController: widget.reactionController,
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -860,7 +934,7 @@ class IndicatorOval extends CustomPainter {
     canvas.drawRRect(
         RRect.fromRectAndRadius(
             Rect.fromLTWH(0, 0, size.width * this.widthFactor, size.height),
-            Radius.circular(3)),
+            const Radius.circular(3)),
         paint);
   }
 
