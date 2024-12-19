@@ -794,6 +794,7 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
                           ?.id ??
                       '',
                   reactionsController: widget.reactionController,
+                  storyController: widget.controller,
                 ),
               ),
             ),
