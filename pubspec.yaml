@@ -9,14 +9,14 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_cache_manager: ^3.3.2
-  rxdart: ^0.27.7
-  video_player: ^2.8.6
-  collection: ^1.18.0
-  refreshed: 2.8.1
+  flutter_cache_manager: ^3.4.1
+  rxdart: ^0.28.0
+  video_player: ^2.9.2
+  collection: ^1.19.1
+  refreshed: 3.0.1
   flutter_feed_reaction: ^0.0.6
   animated_emoji: ^3.1.0
-  cloud_firestore: ^5.4.0
+  cloud_firestore: ^5.6.4
   freezed_annotation: ^2.4.4
 
 dev_dependencies:
