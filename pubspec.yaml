@@ -11,13 +11,13 @@ dependencies:
     sdk: flutter
   flutter_cache_manager: ^3.4.1
   rxdart: ^0.28.0
-  video_player: ^2.9.2
+  video_player: ^2.9.3
   collection: ^1.19.1
-  refreshed: 3.0.1
+  refreshed: 3.0.2
   flutter_feed_reaction: ^0.0.6
   animated_emoji: ^3.1.0
-  cloud_firestore: ^5.6.4
-  freezed_annotation: ^2.4.4
+  cloud_firestore: ^5.6.5
+  freezed_annotation: ^3.0.0
 
 dev_dependencies:
   flutter_test:
